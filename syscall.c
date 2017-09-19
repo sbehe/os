@@ -8,14 +8,14 @@
 #include "syscall.h"
 
 // User code makes a system call with INT T_SYSCALL.
-// System call number in %eax.
+// System call number in %rax.
 // Arguments on the stack, from the user call to the C
 // library system call function. The saved user %esp points
 // to a saved program counter, and then the first argument.
 
 // Fetch the int at addr from the current process.
 int
-fetchint(uint addr, int *ip)
+fetchint(addr_t addr, int *ip)
 {
   if(addr >= proc->sz || addr+4 > proc->sz)
     return -1;
@@ -23,11 +23,22 @@ fetchint(uint addr, int *ip)
   return 0;
 }
 
+
+int
+fetchaddr(addr_t addr, addr_t *ip)
+{
+  if(addr >= proc->sz || addr+sizeof(addr_t) > proc->sz)
+    return -1; 
+  *ip = *(addr_t*)(addr);
+  return 0;
+}
+
+
 // Fetch the nul-terminated string at addr from the current process.
 // Doesn't actually copy the string - just sets *pp to point at it.
 // Returns length of string, not including nul.
 int
-fetchstr(uint addr, char **pp)
+fetchstr(addr_t addr, char **pp)
 {
   char *s, *ep;
 
@@ -41,24 +52,48 @@ fetchstr(uint addr, char **pp)
   return -1;
 }
 
-// Fetch the nth 32-bit system call argument.
+// arguments passed in registers on x64
+static addr_t
+fetcharg(int n)
+{
+  switch (n) {
+  case 0: return proc->tf->rdi;
+  case 1: return proc->tf->rsi;
+  case 2: return proc->tf->rdx;
+  case 3: return proc->tf->r10;
+  case 4: return proc->tf->r8;
+  case 5: return proc->tf->r9;
+  }
+  panic("failed fetch");
+  return -1;
+}
+
 int
 argint(int n, int *ip)
 {
-  return fetchint(proc->tf->esp + 4 + 4*n, ip);
+  *ip = fetcharg(n);
+  return 0;
 }
 
+int
+argaddr(int n, addr_t *ip)
+{
+  *ip = fetcharg(n);
+  return 0;
+}
+
+
 // Fetch the nth word-sized system call argument as a pointer
-// to a block of memory of size n bytes.  Check that the pointer
+// to a block of memory of size bytes.  Check that the pointer
 // lies within the process address space.
 int
 argptr(int n, char **pp, int size)
 {
-  int i;
-  
-  if(argint(n, &i) < 0)
+  addr_t i;
+
+  if(argaddr(n, &i) < 0)
     return -1;
-  if((uint)i >= proc->sz || (uint)i+size > proc->sz)
+  if(size < 0 || (uint)i >= proc->sz || (uint)i+size > proc->sz)
     return -1;
   *pp = (char*)i;
   return 0;
@@ -130,12 +165,12 @@ syscall(void)
 {
   int num;
 
-  num = proc->tf->eax;
+  num = proc->tf->rax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    proc->tf->eax = syscalls[num]();
+    proc->tf->rax = syscalls[num]();
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             proc->pid, proc->name, num);
-    proc->tf->eax = -1;
+    proc->tf->rax = -1;
   }
 }
