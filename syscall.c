@@ -134,6 +134,7 @@ extern addr_t sys_unlink(void);
 extern addr_t sys_wait(void);
 extern addr_t sys_write(void);
 extern addr_t sys_uptime(void);
+extern addr_t sys_mmap(void);
 
 static addr_t (*syscalls[])(void) = {
 
