@@ -56,7 +56,7 @@ sys_sbrk(void)
   return addr;
 }
 
-int sys_mmap() {
+addr_t sys_mmap() {
   int fd;
   int flags;
   if(argint(0,&fd) < 0 || argint(1,&flags) < 0) {
