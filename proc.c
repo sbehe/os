@@ -181,8 +181,6 @@ exit(void)
   int fd;
   cprintf("Exiting process. System free pages is %d\n",kfreepagecount());
 
-  cprintf("Exiting process. System free pages is %d\n",kfreepagecount());
-
   if(proc == initproc)
     panic("init exiting");
 
