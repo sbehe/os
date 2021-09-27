@@ -5,6 +5,10 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "spinlock.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
 
 int
 sys_fork(void)
@@ -54,16 +58,6 @@ sys_sbrk(void)
   return addr;
 }
 
-addr_t sys_mmap() {
-  int fd;
-  int flags;
-  if(argint(0,&fd) < 0 || argint(1,&flags) < 0) {
-    return -1;
-  }
-  cprintf("mmapping fd %d with %s\n",fd,(flags==0?"eager":"lazy"));
-  return 0;
-}
-
 int
 sys_sleep(void)
 {
@@ -96,4 +90,23 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+#define MMAP_FAILED ((~0lu))
+  addr_t
+sys_mmap(void)
+{
+  int fd, flags;
+  if(argint(0,&fd) < 0 || argint(1,&flags) < 0)
+    return MMAP_FAILED;
+
+  // TODO: your implementation
+  return MMAP_FAILED;
+}
+
+  int
+handle_pagefault(addr_t va)
+{
+  // TODO: your code here
+  return 0;
 }

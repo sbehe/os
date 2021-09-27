@@ -43,16 +43,6 @@ kinit2(void *vstart, void *vend)
   kmem.use_lock = 1;
 }
 
-int kfreepagecount() {
-  int i=0;
-  struct run *list = kmem.freelist;
-  while(list->next) {
-    i++;
-    list=list->next;
-  }
-  return i;
-}
-
 void
 freerange(void *vstart, void *vend)
 {
@@ -104,3 +94,12 @@ kalloc(void)
   return (char*)r;
 }
 
+int kfreepagecount() {
+  int i=0;
+  struct run *list = kmem.freelist;
+  while(list->next) {
+    i++;
+    list=list->next;
+  }
+  return i;
+}

@@ -73,6 +73,8 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->rip = (addr_t)forkret;
 
+  // TODO: hw4: initialize the mmap metadata for each new process
+
   return p;
 }
 
@@ -177,6 +179,7 @@ exit(void)
 {
   struct proc *p;
   int fd;
+  cprintf("Exiting process. System free pages is %d\n",kfreepagecount());
 
   cprintf("Exiting process. System free pages is %d\n",kfreepagecount());
 

@@ -75,6 +75,7 @@ void            kfree(char*);
 int             kfreepagecount();
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
+int             kfreepagecount();
 
 // kbd.c
 void            kbdintr(void);
@@ -186,6 +187,8 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, addr_t, void*, uint64);
 void            clearpteu(pde_t *pgdir, char *uva);
+int             mappages(pde_t *pgdir, void *va, addr_t size, addr_t pa, int perm);
+int             handle_pagefault(addr_t va);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
