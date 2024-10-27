@@ -9,6 +9,7 @@
 #include "sleeplock.h"
 #include "fs.h"
 #include "file.h"
+#include "fcntl.h"
 
 int
 sys_fork(void)
@@ -92,16 +93,51 @@ sys_uptime(void)
   return xticks;
 }
 
+// Fetch the nth word-sized system call argument as a file descriptor
+// and return both the descriptor and the corresponding struct file.
+int
+argfd(int n, int *pfd, struct file **pf);
+
+#define MMAP_EAGER_START (char *)0x0000400000000000
 #define MMAP_FAILED ((~0lu))
   addr_t
 sys_mmap(void)
 {
   int fd, flags;
-  if(argint(0,&fd) < 0 || argint(1,&flags) < 0)
+  struct file * fl;
+  //addr_t flags;
+  char * start = proc->mmaptop;
+  if (start < 0) {
+    return 4;
+  }
+  if(argfd(0, &fd, &fl) < 0 || argint(1,&flags) < 0)
     return MMAP_FAILED;
 
-  // TODO: your implementation
-  return MMAP_FAILED;
+  char *mem;
+  mem = kalloc();
+  //flags = PTE_FLAGS(*pte);
+  mappages (proc->pgdir, MMAP_EAGER_START, PGSIZE, V2P(mem), PTE_W | PTE_U);
+  fileread (fl, MMAP_EAGER_START, 100);
+  return (addr_t)MMAP_EAGER_START;
+/*
+  if (proc->mmapcount == 0) {
+    proc->mmaptop = MMAP_EAGER_START;
+  }
+
+  proc->mmaps[proc->mmapcount].fd = fd;
+  proc->mmaps[proc->mmapcount].start = (addr_t)proc->mmaptop;
+
+  int bytes_read = 0;
+  do {
+    bytes_read = fileread (fl, proc->mmaptop, PGSIZE);
+    if (bytes_read > 0) {
+      proc->mmaptop += bytes_read;
+    }
+  } while (bytes_read == PGSIZE);
+
+  proc->mmapcount++;
+  return proc->mmaps[proc->mmapcount].start;
+  */
 }
 
   int
