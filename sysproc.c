@@ -104,40 +104,33 @@ argfd(int n, int *pfd, struct file **pf);
 sys_mmap(void)
 {
   int fd, flags;
+  int bytes_read = 0;
   struct file * fl;
-  //addr_t flags;
-  char * start = proc->mmaptop;
-  if (start < 0) {
-    return 4;
-  }
+  char *mem;
   if(argfd(0, &fd, &fl) < 0 || argint(1,&flags) < 0)
     return MMAP_FAILED;
 
-  char *mem;
-  mem = kalloc();
-  //flags = PTE_FLAGS(*pte);
-  mappages (proc->pgdir, MMAP_EAGER_START, PGSIZE, V2P(mem), PTE_W | PTE_U);
-  fileread (fl, MMAP_EAGER_START, 100);
-  return (addr_t)MMAP_EAGER_START;
-/*
   if (proc->mmapcount == 0) {
     proc->mmaptop = MMAP_EAGER_START;
   }
-
   proc->mmaps[proc->mmapcount].fd = fd;
   proc->mmaps[proc->mmapcount].start = (addr_t)proc->mmaptop;
 
-  int bytes_read = 0;
-  do {
+
+  flags = PTE_W | PTE_U;
+  do
+  {
+    mem = kalloc();
+    mappages (proc->pgdir, proc->mmaptop, PGSIZE, V2P(mem), flags);
     bytes_read = fileread (fl, proc->mmaptop, PGSIZE);
     if (bytes_read > 0) {
-      proc->mmaptop += bytes_read;
+      proc->mmaptop += PGSIZE;
     }
   } while (bytes_read == PGSIZE);
 
+  fl->off = 0;
   proc->mmapcount++;
-  return proc->mmaps[proc->mmapcount].start;
-  */
+  return (addr_t)proc->mmaps[proc->mmapcount - 1].start;
 }
 
   int

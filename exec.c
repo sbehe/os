@@ -100,6 +100,7 @@ exec(char *path, char **argv)
   proc->tf->rip = elf.entry;  // main
   proc->tf->rcx = elf.entry;
   proc->tf->rsp = sp;
+  proc->mmapcount=0;
   switchuvm(proc);
   freevm(oldpgdir);
   return 0;
