@@ -99,15 +99,16 @@ int
 argfd(int n, int *pfd, struct file **pf);
 
 #define MMAP_EAGER_START (char *)0x0000400000000000
+#define MMAP_LAZY_START (char *)0x0000400000000000
+
 #define MMAP_FAILED ((~0lu))
-  addr_t
-sys_mmap(void)
+addr_t eager_mmap ()
 {
   int fd, flags;
   int bytes_read = 0;
   struct file * fl;
   char *mem;
-  if(argfd(0, &fd, &fl) < 0 || argint(1,&flags) < 0)
+  if(argfd(0, &fd, &fl) < 0)
     return MMAP_FAILED;
 
   if (proc->mmapcount == 0) {
@@ -115,8 +116,6 @@ sys_mmap(void)
   }
   proc->mmaps[proc->mmapcount].fd = fd;
   proc->mmaps[proc->mmapcount].start = (addr_t)proc->mmaptop;
-
-
   flags = PTE_W | PTE_U;
   do
   {
@@ -131,6 +130,35 @@ sys_mmap(void)
   fl->off = 0;
   proc->mmapcount++;
   return (addr_t)proc->mmaps[proc->mmapcount - 1].start;
+}
+addr_t lazy_mmap ()
+{
+  int fd, flags;
+  int bytes_read = 0;
+  struct file * fl;
+  char *mem;
+  if(argfd(0, &fd, &fl) < 0)
+    return MMAP_FAILED;
+
+  if (proc->mmapcount == 0) {
+    proc->mmaptop = MMAP_LAZY_START;
+  }
+  proc->mmaps[proc->mmapcount].fd = fd;
+  proc->mmaps[proc->mmapcount].start = (addr_t)proc->mmaptop;
+  proc->mmapcount++;
+  return (addr_t)proc->mmaps[proc->mmapcount - 1].start;
+}
+  addr_t
+sys_mmap(void)
+{
+  int param;
+  if(argint(1,&param) < 0)
+    return MMAP_FAILED;
+  if (param == 0) {
+    return eager_mmap ();
+  } else {
+    return lazy_mmap ();
+  }
 }
 
   int
