@@ -133,20 +133,21 @@ addr_t eager_mmap ()
 }
 addr_t lazy_mmap ()
 {
-  int fd, flags;
+  int num_of_pages_required = 0;
   int bytes_read = 0;
   struct file * fl;
-  char *mem;
+  int fd;
   if(argfd(0, &fd, &fl) < 0)
     return MMAP_FAILED;
-
   if (proc->mmapcount == 0) {
     proc->mmaptop = MMAP_LAZY_START;
   }
   proc->mmaps[proc->mmapcount].fd = fd;
   proc->mmaps[proc->mmapcount].start = (addr_t)proc->mmaptop;
+  num_of_pages_required = (proc->ofile[fd]->ip->size / PGSIZE) + 1;
+  proc->mmaptop += num_of_pages_required * PGSIZE;
   proc->mmapcount++;
-  return (addr_t)proc->mmaps[proc->mmapcount - 1].start;
+  return proc->mmaps[proc->mmapcount - 1].start;
 }
   addr_t
 sys_mmap(void)
@@ -164,6 +165,32 @@ sys_mmap(void)
   int
 handle_pagefault(addr_t va)
 {
-  // TODO: your code here
+  struct file *fl = 0;
+  int fd = 0;
+  char *mem = 0;
+  int flags = 0;
+  uint temp;
+  addr_t va_range_start = 0, va_range_end = 0, offset = va - 0x0000400000000000;
+  addr_t map_to = 0;
+  for (int i = 0; i < proc->mmapcount; i++) {
+    fd = proc->mmaps[i].fd;
+    fl = proc->ofile[fd];
+    va_range_start = proc->mmaps[i].start;
+    va_range_end = proc->mmaps[i].start + fl->ip->size;
+    if ((va_range_start <= va) && (va_range_end >= va))
+    {
+      //page size alligned page which has va address
+      temp = fl->off;
+      offset = va - va_range_start;
+      fl->off = ((int)(offset/PGSIZE)) * PGSIZE;
+      map_to = (va_range_start + fl->off);
+      mem = kalloc();
+      flags = PTE_W | PTE_U;
+      mappages (proc->pgdir, (char*)map_to, PGSIZE, V2P(mem), flags);
+      fileread (fl, (char*)map_to, PGSIZE);
+      fl->off = temp;
+      return 1;
+    }
+  }
   return 0;
 }
